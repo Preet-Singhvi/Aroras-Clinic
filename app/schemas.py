@@ -1,6 +1,4 @@
-# app/schemas.py
 from marshmallow import Schema, fields, validate
-from app.models import Asset
 
 class AssetSchema(Schema):
     id = fields.Int(dump_only=True)

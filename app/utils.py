@@ -1,7 +1,7 @@
-# app/utils.py
 from datetime import datetime, timedelta
 from app import db
 from app.models import Asset, Notification, Violation
+from sqlalchemy.exc import SQLAlchemyError
 
 def run_checks():
     now = datetime.utcnow()
@@ -10,11 +10,8 @@ def run_checks():
     violations = []
 
     assets = Asset.query.all()
+
     for asset in assets:
-        print("upcoming",upcoming)
-        print("now",now)
-        print("asset.service_time",asset.service_time)
-        print("asset.expiration_time",asset.expiration_time)
         if asset.service_time:
             if now <= asset.service_time <= upcoming:
                 add_notification(
@@ -58,7 +55,16 @@ def run_checks():
         db.session.add_all(notifications)
     if violations:
         db.session.add_all(violations)
-    db.session.commit()
+    
+    try:
+        db.session.commit()
+        return {
+            "notifications": len(notifications),
+            "violations": len(violations)
+        }
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        raise e
 
 def add_notification(asset, event_type, event_time, message, collection):
     if not Notification.query.filter_by(
